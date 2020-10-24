@@ -13,16 +13,21 @@ impl Type
 {
     pub fn from_str(s: &str) -> Self
     {
+        println!("parsing {} : ", s);
+        for c in s.chars()
+        {print!("[{}] ", c);}
         let set = RegexSet::new(&[
             r"^[0-9]+$",
-            r"^\?.$",
+            r"^\?\\.$",
         ]).unwrap();
-
-        match set.matches(s).into_iter().next()
+        let recognized = set.matches(s).into_iter().next();
+        println!("automata returned {:?}", recognized);
+        
+        match recognized
         {
             None => Type::Sym(Sym::new(s)),
             Some(0) => Type::Num(Num::U64(u64::from_str(s).unwrap())),
-            Some(1) => Type::Char(Char(s.chars().nth(1).unwrap())),
+            Some(1) => Type::Char(Char(s.chars().nth(2).unwrap())),
             Some(_) => unreachable!()
                 
         }
@@ -53,7 +58,7 @@ impl fmt::Display for Char
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
-        write!(f, "?{}", self.0)
+        write!(f, "?\\{}", self.0)
     }
 }
 

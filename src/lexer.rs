@@ -72,34 +72,47 @@ impl<'input> Iterator for Lexer<'input> {
         let start = self.head_pos;
         loop
         {
-            match (self.pop(), self.chars.peek())
+            let c = self.pop();
+            let d = self.chars.peek();
+            println!("THIS ITERATION: {:?}", (c , d));
+            match (c, d)
             {
                 // if the first char is a parenthesis
-                (Some('('), _) => return Some(Ok((start, Token::LDel, start+1))),
-                (Some(')'), _) => return Some(Ok((start, Token::RDel, start+1))),
+                (Some('('), _) => return Some(Ok((start, Token::LDel, self.head_pos))),
+                (Some(')'), _) => return Some(Ok((start, Token::RDel, self.head_pos))),
 
                 // if escaping a char
                 (Some('\\'), None) => return Some(Err(LexicalError::EscapeEOF)),
                 (Some('\\'), Some(c)) =>
                 {
-                    self.chars.next(); continue
+                    self.pop(); continue
                 },
  
                 // if end of the word
-                (Some(c), None) | // end of the string
-                (Some(c), Some('('))|
-                (Some(c), Some(')'))|
-                (Some(c), Some(' '))|
-                (Some(c), Some('\n')) =>
+                (None, _)| // when we escaped the last char
+                (Some(_), None) | // end of the string
+                (Some(_), Some('('))|
+                (Some(_), Some(')'))|
+                (Some(_), Some(' '))|
+                (Some(_), Some('\n')) =>
                 {
-                    return Some(Ok((start, Token::Atom(Type::from_str(&self.input[start..self.head_pos])), self.head_pos)))
+                    match &self.input.get(start..self.head_pos)
+                    {
+                        Some(slice) =>
+                            return Some(Ok((start,
+                                            Token::Atom(Type::from_str(slice)),
+                                            self.head_pos))),
+                        None =>
+                        {
+                            panic!("WEIRD SLICING:\n{}\n({} {})", self.input, start, self.head_pos);
+                        }
+                    }
                 },
                 // any other char
                 (Some(c), _) =>
                 {
                     continue
-                },
-                (None, _) => unreachable!()
+                }
             }
         }
     }

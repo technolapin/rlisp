@@ -4,6 +4,33 @@ use lisp::lexer::*;
 use lisp::parser;
 fn main() -> Result<(), String>
 {
+    {
+        let code = r#"?\𤄀"#;
+        for c in code.chars()
+        {
+            println!("CHAR: {}    LEN: {}", c, c.len_utf8());
+        }
+        
+        use lisp::randomizable::Randomizable;
+        use lisp::parser;
+        use lisp::ast::Sexpr;
+        use lisp::lexer::Lexer;
+        {
+            let ast = Sexpr::Atom(Type::Sym(Sym::new(code)));
+            let pretty_print = format!("{}", ast);
+            println!("pretty: {}", pretty_print);
+            let lexer = Lexer::new(&pretty_print);
+            let parsed = parser::SexParser::new()
+                .parse(&pretty_print,lexer)
+                .unwrap();
+
+            assert!(
+                ast == parsed,
+                format!("\n{}\nand\n{}\n are not equal\n(trees:)\n{:?}\n{:?}", ast, parsed, ast, parsed)
+            );
+        }
+  
+    }
     /*
     
     {

@@ -31,6 +31,11 @@ impl Randomizable for Sym
         {
             if let Some(c) = std::char::from_u32(rand::random::<u32>())
             {
+                match c
+                {
+                    ' '|'\n'|'('|')' => {s.push('\\');},
+                    _ => ()
+                }
                 s.push(c);
             }
         }
@@ -52,7 +57,8 @@ impl Randomizable for Char
 {
     fn rand(_: usize) -> Self
     {
-        Self(rand::random::<char>())        
+        let c = rand::random::<char>();
+        Self(c)        
     }
 }
 
