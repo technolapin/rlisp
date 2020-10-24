@@ -16,11 +16,12 @@ pub enum LexicalError
 }
 
 
-use std::str::CharIndices;
+use std::str::Chars;
 use std::iter::Peekable;
 
 pub struct Lexer<'input> {
-    chars: Peekable<CharIndices<'input>>,
+    chars: Peekable<Chars<'input>>,
+    head_pos: usize,
     input: &'input str
 }
 
@@ -29,16 +30,30 @@ impl<'input> Lexer<'input> {
     {
         Lexer
         {
-            chars: input.char_indices().peekable(),
+            chars: input.chars().peekable(),
+            head_pos: 0,
             input
         }
     }
+
+    pub fn pop(&mut self) -> Option<char>
+    {
+        let maybe_c = self.chars.next();
+
+        if let Some(c) = maybe_c
+        {
+            self.head_pos += c.len_utf8();
+        }
+
+        maybe_c
+
+    }
+    
 }
 
 
 impl<'input> Iterator for Lexer<'input> {
     type Item = Spanned<Token, usize, LexicalError>;
-    
     fn next(&mut self) -> Option<Self::Item> {
 
         // FIND THE START
@@ -46,47 +61,42 @@ impl<'input> Iterator for Lexer<'input> {
         {
             match self.chars.peek()
             {
-                Some((_, ' ')) | Some((_, '\n')) => {self.chars.next();},
+                Some(' ') | Some('\n') =>
+                {
+                    self.pop();
+                },
                 None => return None,
                 _ => break
             }
         }
-        let start = self.chars.peek().unwrap().0;
-        let mut word = String::new();
+        let start = self.head_pos;
         loop
         {
-            match (self.chars.next(), self.chars.peek())
+            match (self.pop(), self.chars.peek())
             {
-                /*
-                (Some((end, ' ')), _) |
-                (Some((end, '\n')), _) => return Some(Ok((start, Token::Atom(Type::from_str(&self.input[start..end])), end))),*/ // impossible at first
-
                 // if the first char is a parenthesis
-                (Some((start, '(')), _) => return Some(Ok((start, Token::LDel, start+1))),
-                (Some((start, ')')), _) => return Some(Ok((start, Token::RDel, start+1))),
+                (Some('('), _) => return Some(Ok((start, Token::LDel, start+1))),
+                (Some(')'), _) => return Some(Ok((start, Token::RDel, start+1))),
 
                 // if escaping a char
-                (Some((_, '\\')), None) => return Some(Err(LexicalError::EscapeEOF)),
-                (Some((_, '\\')), Some((_, c))) =>
+                (Some('\\'), None) => return Some(Err(LexicalError::EscapeEOF)),
+                (Some('\\'), Some(c)) =>
                 {
-                    word.push(*c);
                     self.chars.next(); continue
                 },
  
                 // if end of the word
-                (Some((i, c)), None) | // end of the string
-                (Some((i, c)), Some((_, '(')))|
-                (Some((i, c)), Some((_, ')')))|
-                (Some((i, c)), Some((_, ' ')))|
-                (Some((i, c)), Some((_, '\n'))) =>
+                (Some(c), None) | // end of the string
+                (Some(c), Some('('))|
+                (Some(c), Some(')'))|
+                (Some(c), Some(' '))|
+                (Some(c), Some('\n')) =>
                 {
-                    word.push(c);
-                    return Some(Ok((start, Token::Atom(Type::from_str(&word)), i+1)))
+                    return Some(Ok((start, Token::Atom(Type::from_str(&self.input[start..self.head_pos])), self.head_pos)))
                 },
                 // any other char
-                (Some((i, c)), _) =>
+                (Some(c), _) =>
                 {
-                    word.push(c);
                     continue
                 },
                 (None, _) => unreachable!()

@@ -31,7 +31,7 @@ mod tests {
 
             assert!(
                 ast == parsed,
-                format!("{}\nand\n{}\n are not equal\n(trees:)\n{:?}\n{:?}", ast, parsed, ast, parsed)
+                format!("\n{}\nand\n{}\n are not equal\n(trees:)\n{:?}\n{:?}", ast, parsed, ast, parsed)
             );
         }
 
