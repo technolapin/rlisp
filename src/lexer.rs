@@ -48,6 +48,21 @@ impl<'input> Lexer<'input> {
         maybe_c
 
     }
+
+    fn extract_atom(&self, start: usize, end: usize) -> Option<Spanned<Token, usize, LexicalError>>
+    {
+        match &self.input.get(start..end)
+        {
+            Some(slice) =>
+                return Some(Ok((start,
+                                Token::Atom(Type::from_str(slice)),
+                                end))),
+            None =>
+            {
+                panic!("WEIRD SLICING:\n{}\n({} {})", self.input, start, end);
+            }
+        }
+    }
     
 }
 
@@ -70,50 +85,61 @@ impl<'input> Iterator for Lexer<'input> {
             }
         }
         let start = self.head_pos;
+        println!("FETCHING WORD");
+        let mut escaping = false;
         loop
         {
             let c = self.pop();
             let d = self.chars.peek();
-            println!("THIS ITERATION: {:?}", (c , d));
-            match (c, d)
+            println!("THIS ITERATION: {:?}", (c , d, escaping));
+            match (c, d, escaping)
             {
+                (Some(_), Some(' '), true)|
+                (Some(_), Some('\n'), true)|
+                (Some(_), Some('('), true)|
+                (Some(_), Some(')'), true)|
+                (Some(_), None, true) => // if we escaped the last char
+                {
+                    return self.extract_atom(start, self.head_pos);
+                },
+               
+                (Some(_), _, true) => // if we escaped (non-end case)
+                {
+                    // we just take the char without taking it into account
+                },
+
+                
+                (None, _, true) => // if we escaped the end of the file
+                {
+                    return Some(Err(LexicalError::EscapeEOF));
+                },
                 // if the first char is a parenthesis
-                (Some('('), _) => return Some(Ok((start, Token::LDel, self.head_pos))),
-                (Some(')'), _) => return Some(Ok((start, Token::RDel, self.head_pos))),
+                (Some('('), _, false) => return Some(Ok((start, Token::LDel, self.head_pos))),
+                (Some(')'), _, false) => return Some(Ok((start, Token::RDel, self.head_pos))),
 
                 // if escaping a char
-                (Some('\\'), None) => return Some(Err(LexicalError::EscapeEOF)),
-                (Some('\\'), Some(c)) =>
+                (Some('\\'), _, false) =>
                 {
-                    self.pop(); continue
+                    escaping = true;
+                    continue
                 },
  
                 // if end of the word
-                (None, _)| // when we escaped the last char
-                (Some(_), None) | // end of the string
-                (Some(_), Some('('))|
-                (Some(_), Some(')'))|
-                (Some(_), Some(' '))|
-                (Some(_), Some('\n')) =>
+                (None, _, false)| // when we escaped the last char (not anymore)
+                (Some(_), None, false) | // end of the string
+                (Some(_), Some('('), false)|
+                (Some(_), Some(')'), false)|
+                (Some(_), Some(' '), false)|
+                (Some(_), Some('\n'), false) =>
                 {
-                    match &self.input.get(start..self.head_pos)
-                    {
-                        Some(slice) =>
-                            return Some(Ok((start,
-                                            Token::Atom(Type::from_str(slice)),
-                                            self.head_pos))),
-                        None =>
-                        {
-                            panic!("WEIRD SLICING:\n{}\n({} {})", self.input, start, self.head_pos);
-                        }
-                    }
+                    return self.extract_atom(start, self.head_pos)
                 },
                 // any other char
-                (Some(c), _) =>
+                (Some(c), _, false) =>
                 {
-                    continue
                 }
             }
+            escaping = false;
         }
     }
 }

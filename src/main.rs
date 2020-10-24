@@ -5,7 +5,10 @@ use lisp::parser;
 fn main() -> Result<(), String>
 {
     {
-        let code = r#"?\𤄀"#;
+//        let ast = Sexpr::List(vec![Sexpr::Atom(Type::Sym(Sym::new("\u{9cc3e}\u{1054c1}𩒴\u{14063}\u{76a6c}"))), Sexpr::Atom(Type::Char(Char(')')))]);
+        //let ast = Sexpr::Atom(Type::Char(Char(')')));
+        let ast = Sexpr::List(vec![Sexpr::Atom(Type::Char(Char('䓂'))), Sexpr::Atom(Type::Num(Num::U64(155046837041004162)))]);
+        let code = &format!("{}", ast);
         for c in code.chars()
         {
             println!("CHAR: {}    LEN: {}", c, c.len_utf8());
@@ -16,21 +19,18 @@ fn main() -> Result<(), String>
         use lisp::ast::Sexpr;
         use lisp::lexer::Lexer;
         {
-            let ast = Sexpr::Atom(Type::Sym(Sym::new(code)));
-            let pretty_print = format!("{}", ast);
-            println!("pretty: {}", pretty_print);
-            let lexer = Lexer::new(&pretty_print);
-            let parsed = parser::SexParser::new()
-                .parse(&pretty_print,lexer)
-                .unwrap();
+            let lexer = Lexer::new(&code);
 
-            assert!(
-                ast == parsed,
-                format!("\n{}\nand\n{}\n are not equal\n(trees:)\n{:?}\n{:?}", ast, parsed, ast, parsed)
-            );
+            println!("        CODE: {}", code);
+            let parsed = parser::SexParser::new()
+                .parse(&code, lexer)
+                .unwrap();
+            println!("PRETTY PRINT: {}", parsed);
+            println!("AST: {:?}", parsed);
         }
   
     }
+    return Ok(());
     /*
     
     {
