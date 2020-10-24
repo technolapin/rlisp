@@ -1,0 +1,47 @@
+use std::str::FromStr;
+use crate::lexer::*;
+use crate::ast::*;
+use crate::types::*;
+
+
+grammar<'input>(input: &'input str);
+
+pub Sex: Sexpr =
+{
+    "lDel" "rDel" => Sexpr::List(vec![]),
+    "lDel" <lst: List> "rDel" => Sexpr::List(lst),
+    "atom" => Sexpr::Atom(<>)
+}
+
+List: Vec<Sexpr> =
+{
+    Sex => vec![<>],
+    <lst: List> <e: Sex> => {let mut l = lst; l.push(e); l}
+}
+
+// List: Vec<Sexpr> =
+// {
+//         <lst: List> <e: Sex> => {let mut l = lst; l.push(e); l},
+//         "" => vec![]
+// }
+
+// Atom: Type =
+// {
+//         Int => Atom::Num(Num::U64(<>)),
+//         Char => Atom::Char(Char(<>)),
+//         sym => unreachable!()
+// }
+
+// Char = 
+
+
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+    
+    enum Token{
+        "atom" => Token::Atom(<Type>),
+        "lDel" => Token::LDel,
+        "rDel" => Token::RDel,
+    }
+}
