@@ -4,6 +4,7 @@ use std::str::FromStr;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type
 {
+    Nil,
     Sym(Sym),
     Num(Num),
     Char(Char)
@@ -13,15 +14,17 @@ impl Type
 {
     pub fn from_str(s: &str) -> Self
     {
+        /*
         println!("parsing {} : ", s);
         for c in s.chars()
         {print!("[{}] ", c);}
+         */
         let set = RegexSet::new(&[
             r"^[0-9]+$",
             r"^\?\\.$",
         ]).unwrap();
         let recognized = set.matches(s).into_iter().next();
-        println!("automata returned {:?}", recognized);
+        // println!("automata returned {:?}", recognized);
         
         match recognized
         {
@@ -46,6 +49,7 @@ impl fmt::Display for Type
             Self::Sym(sym) => write!(f, "{}", sym),
             Self::Num(num) => write!(f, "{}", num),
             Self::Char(cha) => write!(f, "{}", cha),
+            Self::Nil => write!(f, "()"),
         }
     }
 }
@@ -79,10 +83,6 @@ impl Sym
     pub fn new(name: &str) -> Self
     {
         Self(String::from(name))
-    }
-    pub fn nil() -> Self
-    {
-        Self::new("nil")
     }
     pub fn t() -> Self
     {

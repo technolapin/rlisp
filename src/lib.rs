@@ -4,6 +4,7 @@ lalrpop_mod!(pub parser);
 
 pub mod types;
 pub mod ast;
+pub mod prims;
 
 pub mod lexer;
 

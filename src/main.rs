@@ -1,14 +1,22 @@
 use lisp::types::*;
 use lisp::ast::*;
 use lisp::lexer::*;
+use lisp::prims::*;
 use lisp::parser;
 fn main() -> Result<(), String>
 {
     {
+    let mut s = String::new();
+        s.push('\u{1b}');
+        s.push('𣽊');
+        s.push('\u{a6f55}');
+        s.push('\u{7ad03}');
+        println!("{}", s);
 //        let ast = Sexpr::List(vec![Sexpr::Atom(Type::Sym(Sym::new("\u{9cc3e}\u{1054c1}𩒴\u{14063}\u{76a6c}"))), Sexpr::Atom(Type::Char(Char(')')))]);
         //let ast = Sexpr::Atom(Type::Char(Char(')')));
-        let ast = Sexpr::List(vec![Sexpr::Atom(Type::Char(Char('䓂'))), Sexpr::Atom(Type::Num(Num::U64(155046837041004162)))]);
-        let code = &format!("{}", ast);
+    let ast = Sexpr::List(vec![Sexpr::Atom(Type::Char(Char('䓂'))), Sexpr::Atom(Type::Num(Num::U64(155046837041004162)))]);
+    let code = &s;
+    
         for c in code.chars()
         {
             println!("CHAR: {}    LEN: {}", c, c.len_utf8());
@@ -30,26 +38,23 @@ fn main() -> Result<(), String>
         }
   
     }
-    return Ok(());
-    /*
-    
-    {
-
-        let s = "äbĉéé";
-
-        println!("{:?}", s.chars().collect::<Vec<_>>());
-        println!("{:?}", s.chars().collect::<Vec<_>>());
-        return Ok(());
-    }
-    */
-    
+ 
 
     let mut context = Context::new();
+
+    context.push_prim(Sym::new("quote"), Prim::Quote);
+    context.push_prim(Sym::new("atom"), Prim::Atom);
+    context.push_prim(Sym::new("eq"), Prim::Eq);
+    context.push_prim(Sym::new("car"), Prim::Car);
+    context.push_prim(Sym::new("cdr"), Prim::Cdr);
+    context.push_prim(Sym::new("cons"), Prim::Cons);
+    context.push_prim(Sym::new("cond"), Prim::Cond);
 
     context.push_prim(Sym::new("+"), Prim::Add);
     context.push_prim(Sym::new("*"), Prim::Mult);
     context.push_prim(Sym::new("lambda"), Prim::Lambda);
     context.push_prim(Sym::new("let"), Prim::Let);
+    context.push_sexpr(Sym::new("nil"), Sexpr::Atom(Type::Nil));
     {
         let sexpr = Sexpr::List(vec![
             Sexpr::Atom(Type::Sym(Sym::new("+"))),
@@ -153,8 +158,9 @@ fn main() -> Result<(), String>
         println!("{}", sexpr);
         let res = sexpr.eval(&mut context)?;
         println!("{}", res);
-    } 
+    }
 
+    
     
     {
         let code = "\n  (+ 1 2 3)";
@@ -189,6 +195,42 @@ fn main() -> Result<(), String>
         println!("{}", expr);
     }
 
-    
+    {
+        println!("========================================");
+        // input + expected result
+        let inputs = vec![
+            ("(quote (+ 1 1))", "(+ 1 1)"),
+            ("(quote (quote 1))", "(quote 1)"),
+
+            ("(atom (quote a))", "t"),
+            ("(atom (quote (1 2 3)))", "()"),
+            ("(atom (quote ()))", "t"),
+
+            ("(eq 2 (+ 1 1))", "t"),
+            ("(eq () nil)", "t"),
+            ("(eq () ())", "t"),
+            ("(eq () 1)", "()"),
+
+        ];
+        for (input, expect) in inputs.iter()
+        {
+            let lexer = Lexer::new(input);
+            let expr = parser::SexParser::new()
+                .parse(input,lexer)
+                .unwrap();
+            let out = expr.eval(&mut context).unwrap();
+            println!();
+            println!("INPUT | {}", input);
+            println!("PRETTY| {}", expr);
+            println!("AST|{:?}", expr);
+            println!("RESULT  = {}", out);
+            println!("EXPECTED= {}", expect);
+            if &format!("{}", out) != expect
+            {
+                return Err(format!("TEST FAILED"));
+            }
+        }
+    }
+
     Ok(())
 }

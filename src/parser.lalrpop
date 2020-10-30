@@ -8,31 +8,17 @@ grammar<'input>(input: &'input str);
 
 pub Sex: Sexpr =
 {
-    "lDel" "rDel" => Sexpr::List(vec![]),
-    "lDel" <lst: List> "rDel" => Sexpr::List(lst),
+    "lDel" "rDel" => Sexpr::Atom(Type::Nil),
+    "lDel" <lst: NonNilList> "rDel" => Sexpr::List(lst),
     "atom" => Sexpr::Atom(<>)
 }
 
-List: Vec<Sexpr> =
+NonNilList: Vec<Sexpr> =
 {
     Sex => vec![<>],
-    <lst: List> <e: Sex> => {let mut l = lst; l.push(e); l}
+    <lst: NonNilList> <e: Sex> => {let mut l = lst; l.push(e); l}
 }
 
-// List: Vec<Sexpr> =
-// {
-//         <lst: List> <e: Sex> => {let mut l = lst; l.push(e); l},
-//         "" => vec![]
-// }
-
-// Atom: Type =
-// {
-//         Int => Atom::Num(Num::U64(<>)),
-//         Char => Atom::Char(Char(<>)),
-//         sym => unreachable!()
-// }
-
-// Char = 
 
 
 extern {

@@ -10,11 +10,12 @@ impl Randomizable for Type
 {
     fn rand(_: usize) -> Self
     {
-        match rand::random::<u32>() % 3
+        match rand::random::<u32>() % 4
         {
             0 => Self::Sym(Randomizable::rand(0)),
             1 => Self::Num(Randomizable::rand(0)),
-            _ => Self::Char(Randomizable::rand(0)),
+            2 => Self::Char(Randomizable::rand(0)),
+            _ => Self::Nil,
         }
     }
 }

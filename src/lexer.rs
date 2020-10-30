@@ -12,7 +12,8 @@ pub enum Token
 #[derive(Debug)]
 pub enum LexicalError
 {
-    EscapeEOF
+    EscapeEOF,
+    //NotASCII,
 }
 
 
@@ -85,14 +86,25 @@ impl<'input> Iterator for Lexer<'input> {
             }
         }
         let start = self.head_pos;
-        println!("FETCHING WORD");
+        //println!("FETCHING WORD");
         let mut escaping = false;
         loop
         {
-            let c = self.pop();
+            let maybe_c = self.pop();
+            /*
+                
+            if let Some(c) = maybe_c
+            {
+                if !c.is_ascii()
+                {
+                    return Some(Err(LexicalError::NotASCII));
+                }
+            }
+             */
+            
             let d = self.chars.peek();
-            println!("THIS ITERATION: {:?}", (c , d, escaping));
-            match (c, d, escaping)
+            //println!("THIS ITERATION: {:?}", (maybe_c , d, escaping));
+            match (maybe_c, d, escaping)
             {
                 (Some(_), Some(' '), true)|
                 (Some(_), Some('\n'), true)|

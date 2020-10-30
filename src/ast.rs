@@ -1,198 +1,9 @@
 use crate::types::*;
+use crate::prims::Prim;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Prim
-{
-    Lambda,
-    Add,
-    Mult,
-    Let
-}
-
-impl Prim
-{
-    fn execute(&self, params: &[Sexpr], context: &mut Context) -> Result<Value, String>
-    {
-        use Prim::*;
-        match self
-        {
-            Lambda =>
-            {
-                if params.len() != 2
-                {
-                    Err(format!("Error on lambda construction: 2 parameters required ({} given)",
-                                params.len()))
-                }
-                else
-                {
-                    match params[0].clone()
-                    {
-                        Sexpr::Atom(_) => Err(format!("Error on lambda construction: first argument must be a symbol list, found atom")),
-                        Sexpr::List(lst) =>
-                        {
-                            let mut syms = Vec::new();
-                            for e in lst.iter()
-                            {
-                                match e
-                                {
-                                    Sexpr::List(_) =>
-                                    {return Err(format!("Error on lambda construction: all parameters must be symbols (found list)"));},
-                                    Sexpr::Atom(Type::Sym(s)) => syms.push(s.clone()),
-                                    Sexpr::Atom(other_atom) =>
-                                    {return Err(format!("Error on lambda construction: all parameters must be symbols (found {:?}", other_atom));}
-                                }
-                            }
-
-                            // e is then a plain list of symbols
-                            Ok(Value::Lambda(
-                                LambdaValue
-                                {
-                                    params: syms,
-                                    expr: params[1].clone()
-                                }
-                            ))
-                        }
-                    }
-                }
-            },
-            Add => // for now only with u64
-            {
-                let sum = params.iter()
-                    .try_fold(0u64, |sum, p|
-                              {
-                                  let reduced = p.eval(context)?;
-                                  if let Value::Sexpr(Sexpr::Atom(Type::Num(Num::U64(n)))) = reduced
-                                  {
-                                      Ok(n + sum)
-                                  }
-                                  else
-                                  {
-                                      Err(format!("TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION (found {:?}, expected a u64)", p))
-                                  }
-                              })?;
-                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::U64(sum)))))
-            },
-            Mult => // for now only with u64
-            {
-                let mul = params.iter().try_fold(1u64, |mul, p|
-                                {
-                                    let reduced = p.eval(context)?;
-                                    if let Value::Sexpr(Sexpr::Atom(Type::Num(Num::U64(n)))) = reduced
-                                    {
-                                        Ok(n * mul)
-                                    }
-                                    else
-                                    {
-                                        Err(String::from("TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION"))
-                                    }
-                                })?;
-                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::U64(mul)))))
-            },
-            Let =>
-            {
-                if params.len() != 2
-                {
-                    Err(format!("Error on lambda construction: 2 parameters required ({} given)",
-                                params.len()))
-                }
-                else if let Sexpr::List(lst) = params[0].clone()
-                {
-                    let mut vars = Vec::new();
-                    for e in lst.iter()
-                    {
-                        if let Sexpr::List(lst) = e
-                        {
-                            if lst.len() == 2
-                            {
-                                if let Sexpr::Atom(Type::Sym(sym)) = &lst[0]
-                                {
-                                    let val = lst[1].eval(context)?;
-                                    vars.push((sym, val));
-                                }
-                                else
-                                {
-                                    return Err(format!("Error in let: require a couple (symbol sexp) (found {})", e))
-
-                                }
-                            }
-                            else
-                            {
-                                return Err(format!("Error in let: require a couple (symbol sexp) (found {})", e))
-                            }
-                            
-                        }
-                        else
-                        {
-                            return Err(format!("Error in let: first parameter has to be a list (found {})", e))
-                        }
-                    }
-
-                    for (sym, val) in vars.iter()
-                    {
-                        context.push((*sym).clone(), val.clone());
-                    }
-                    let ret = params[1].eval(context)?;
-                    for (sym, _) in vars.iter()
-                    {
-                        context.pop(sym);
-                    }
-                    
-                    
-                    Ok(ret)
-                }
-                else
-                {
-                    Err(format!("Error on lambda construction: first parameter must be a list ({} given)",
-                                params[0]))
-                    
-                }
-            },
-        }
-    }
-}
-
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct LambdaValue
-{
-    params: Vec<Sym>,
-    expr: Sexpr,
-}
-
-
-impl LambdaValue
-{
-
-    fn execute(&self, given_params: &[Sexpr], context: &mut Context) -> Result<Value, String>
-    {
-        if given_params.len() != self.params.len()
-        {
-            Err(format!("Error on lambda call: {} parameters required ({} given)",
-                        self.params.len(),
-                        given_params.len()))
-        }
-        else
-        {
-            for (sym, expr) in self.params.iter().zip(given_params.iter())
-            {
-                context.push_sexpr(sym.clone(), expr.clone())
-            }
-
-            let ret = self.expr.eval(context);
-
-            for sym in self.params.iter()
-            {
-                context.pop(sym)
-            }
-            
-            ret
-        }
-    }
-}
-
-
-#[derive(Debug, Clone)]
 pub enum Value
 {
     Sexpr(Sexpr),
@@ -223,7 +34,7 @@ impl Context
         }
     }
 
-    fn push(&mut self, name: Sym, value: Value)
+    pub fn push(&mut self, name: Sym, value: Value)
     {
         match self.syms_map.get_mut(&name)
         {
@@ -232,7 +43,7 @@ impl Context
         }
     }
     
-    fn push_sexpr(&mut self, name: Sym, exp: Sexpr)
+    pub fn push_sexpr(&mut self, name: Sym, exp: Sexpr)
     {
         self.push(name, Value::Sexpr(exp))
     }
@@ -248,7 +59,7 @@ impl Context
     }
 
     // assuming we pushed correctly
-    fn pop(&mut self, name: &Sym)
+    pub fn pop(&mut self, name: &Sym)
     {
         if let Some(v) = self.syms_map.get_mut(name)
         {
@@ -286,7 +97,7 @@ impl Sexpr
             {
                 if lst.len() == 0
                 {
-                    Ok(Value::Sexpr(Self::Atom(Type::Sym(Sym::nil()))))
+                    Ok(Value::Sexpr(Self::Atom(Type::Nil)))
                 }
                 else
                 {
@@ -343,3 +154,40 @@ impl fmt::Display for Value
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct LambdaValue
+{
+    pub params: Vec<Sym>,
+    pub expr: Sexpr,
+}
+
+
+impl LambdaValue
+{
+
+    fn execute(&self, given_params: &[Sexpr], context: &mut Context) -> Result<Value, String>
+    {
+        if given_params.len() != self.params.len()
+        {
+            Err(format!("Error on lambda call: {} parameters required ({} given)",
+                        self.params.len(),
+                        given_params.len()))
+        }
+        else
+        {
+            for (sym, expr) in self.params.iter().zip(given_params.iter())
+            {
+                context.push_sexpr(sym.clone(), expr.clone())
+            }
+
+            let ret = self.expr.eval(context);
+
+            for sym in self.params.iter()
+            {
+                context.pop(sym)
+            }
+            
+            ret
+        }
+    }
+}
