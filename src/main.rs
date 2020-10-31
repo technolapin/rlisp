@@ -258,6 +258,20 @@ fn main() -> Result<(), String>
             }
         }
     }
+    {
+        let v = vec![
+            Num::Z(i64::max_value()),
+            Num::Q(1, 2),
+        ];
+        let v = vec![
+            Num::Z(64),
+            Num::Q(-1, 0),
+        ];
+
+        let sum = v.iter().try_fold(Num::Z(0), |sum, n| sum.add(n))?;
+        println!("{}", sum);
+
+    }
 
     Ok(())
 }

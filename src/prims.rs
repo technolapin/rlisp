@@ -305,19 +305,19 @@ impl Prim
             Add => // for now only with i64
             {
                 let sum = params.iter()
-                    .try_fold(0i64, |sum, p|
+                    .try_fold(Num::Z(0), |sum, p|
                               {
                                   let reduced = p.eval(context)?;
-                                  if let Value::Sexpr(Sexpr::Atom(Type::Num(Num::Z(n)))) = reduced
+                                  if let Value::Sexpr(Sexpr::Atom(Type::Num(num))) = reduced
                                   {
-                                      Ok(n + sum)
+                                      num.add(&sum)
                                   }
                                   else
                                   {
                                       Err(format!("TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION (found {:?}, expected a i64)", p))
                                   }
                               })?;
-                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::Z(sum)))))
+                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(sum))))
             },
             Mult => // for now only with i64
             {
