@@ -50,7 +50,7 @@ impl Randomizable for Num
 {
     fn rand(_: usize) -> Self
     {
-        Self::U64(rand::random::<u64>())
+        Self::Z(rand::random::<i64>())
     }
 }
 

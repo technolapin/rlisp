@@ -29,7 +29,7 @@ impl Type
         match recognized
         {
             None => Type::Sym(Sym::new(s)),
-            Some(0) => Type::Num(Num::U64(u64::from_str(s).unwrap())),
+            Some(0) => Type::Num(Num::Z(i64::from_str(s).unwrap())),
             Some(1) => Type::Char(Char(s.chars().nth(2).unwrap())),
             Some(_) => unreachable!()
                 
@@ -94,9 +94,34 @@ impl Sym
 #[derive(Debug, Clone, PartialEq)]
 pub enum Num
 {
-    U64(u64),
-    I64(i64),
-    F64(f64)
+    Z(i64),
+    Q(i64, i64),
+    R(f64),
+    C(f64, f64)
+}
+
+impl Num
+{
+    fn are_homogenous(nums: &[Self]) -> bool
+    {
+        use Num::*;
+        if nums.len() <= 1
+        {
+            true
+        }
+        else
+        {
+            match (&nums[0], &nums[1])
+            {
+                (Z(_), Z(_))|
+                (Q(_, _), Q(_, _))|
+                (R(_), R(_))|
+                (C(_, _), C(_, _)) => Num::are_homogenous(&nums[1..]),
+                _ => false
+            }
+        }
+        
+    }
 }
 
 impl fmt::Display for Num
@@ -105,9 +130,10 @@ impl fmt::Display for Num
     {
         match self
         {
-            Self::U64(x) => write!(f, "{}", x),
-            Self::I64(x) => write!(f, "{}", x),
-            Self::F64(x) => write!(f, "{}", x),
+            Self::Z(x) => write!(f, "{}", x),
+            Self::Q(a, b) => write!(f, "{}/{}", a, b),
+            Self::R(x) => write!(f, "{}", x),
+            Self::C(a, b) => write!(f, "{}+i{}", a, b),
         }
     }
 }

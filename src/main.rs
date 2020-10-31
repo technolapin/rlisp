@@ -14,7 +14,7 @@ fn main() -> Result<(), String>
         println!("{}", s);
 //        let ast = Sexpr::List(vec![Sexpr::Atom(Type::Sym(Sym::new("\u{9cc3e}\u{1054c1}𩒴\u{14063}\u{76a6c}"))), Sexpr::Atom(Type::Char(Char(')')))]);
         //let ast = Sexpr::Atom(Type::Char(Char(')')));
-    let ast = Sexpr::List(vec![Sexpr::Atom(Type::Char(Char('䓂'))), Sexpr::Atom(Type::Num(Num::U64(155046837041004162)))]);
+    let ast = Sexpr::List(vec![Sexpr::Atom(Type::Char(Char('䓂'))), Sexpr::Atom(Type::Num(Num::Z(155046837041004162)))]);
     let code = &s;
     
         for c in code.chars()
@@ -58,13 +58,13 @@ fn main() -> Result<(), String>
     {
         let sexpr = Sexpr::List(vec![
             Sexpr::Atom(Type::Sym(Sym::new("+"))),
-            Sexpr::Atom(Type::Num(Num::U64(1))),
+            Sexpr::Atom(Type::Num(Num::Z(1))),
             Sexpr::List(vec![
                 Sexpr::Atom(Type::Sym(Sym::new("*"))),
-                Sexpr::Atom(Type::Num(Num::U64(4))),
-                Sexpr::Atom(Type::Num(Num::U64(5))),
+                Sexpr::Atom(Type::Num(Num::Z(4))),
+                Sexpr::Atom(Type::Num(Num::Z(5))),
             ]),
-            Sexpr::Atom(Type::Num(Num::U64(2))),
+            Sexpr::Atom(Type::Num(Num::Z(2))),
         ]);
 
 
@@ -88,8 +88,8 @@ fn main() -> Result<(), String>
                 ]),
 
             ]),
-            Sexpr::Atom(Type::Num(Num::U64(4))),
-            Sexpr::Atom(Type::Num(Num::U64(5))),
+            Sexpr::Atom(Type::Num(Num::Z(4))),
+            Sexpr::Atom(Type::Num(Num::Z(5))),
         ]);
 
         println!("{}", sexpr);
@@ -127,8 +127,8 @@ fn main() -> Result<(), String>
                 ]),
 
             ]),
-            Sexpr::Atom(Type::Num(Num::U64(4))),
-            Sexpr::Atom(Type::Num(Num::U64(5))),
+            Sexpr::Atom(Type::Num(Num::Z(4))),
+            Sexpr::Atom(Type::Num(Num::Z(5))),
         ]);
         println!("{}", sexpr);
         let res = sexpr.eval(&mut context)?;
@@ -141,11 +141,11 @@ fn main() -> Result<(), String>
             Sexpr::List(vec![
                 Sexpr::List(vec![
                     Sexpr::Atom(Type::Sym(Sym::new("a"))),
-                    Sexpr::Atom(Type::Num(Num::U64(4))),
+                    Sexpr::Atom(Type::Num(Num::Z(4))),
                 ]),
                 Sexpr::List(vec![
                     Sexpr::Atom(Type::Sym(Sym::new("b"))),
-                    Sexpr::Atom(Type::Num(Num::U64(5))),
+                    Sexpr::Atom(Type::Num(Num::Z(5))),
                 ]),
             ]),
             Sexpr::List(vec![
@@ -211,6 +211,33 @@ fn main() -> Result<(), String>
             ("(eq () ())", "t"),
             ("(eq () 1)", "()"),
 
+            ("(car ())", "()"),
+            ("(car (quote ()))", "()"),
+            ("(car (quote (1 2)))", "1"),
+            ("(car (quote (() 2)))", "()"),
+
+            ("(cdr ())", "()"),
+            ("(cdr (quote ()))", "()"),
+            ("(cdr (quote (1)))", "()"),
+            ("(cdr (quote (1)))", "()"),
+            ("(cdr (quote (1 2)))", "(2)"),
+            ("(cdr (quote (() 2)))", "(2)"),
+            ("(cdr (quote (1 ())))", "(())"),
+
+            ("(cons () (quote ()))", "(())"),
+            ("(cons 1 (quote ()))", "(1)"),
+            ("(cons 1 (quote (2 3 4)))", "(1 2 3 4)"),
+
+            ("(cond ())", "()"),
+            ("(cond () () () ())", "()"),
+            ("(cond () () (6) ())", "6"),
+            ("(cond () () () (6))", "6"),
+            ("(cond (6) () () ())", "6"),
+            ("(cond (1 2))", "2"),
+            ("(cond ((eq (quote a) (quote b)) (quote first))
+((atom (quote a)) (quote second)))", "second"),
+
+            
         ];
         for (input, expect) in inputs.iter()
         {

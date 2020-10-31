@@ -46,7 +46,7 @@ impl Prim
                     }
                     else
                     {
-                                                                                                                                                              Ok(Value::Sexpr(Sexpr::Atom(Type::Nil)))
+                        Ok(Value::Sexpr(Sexpr::Atom(Type::Nil)))
                     }
                 }
                 else
@@ -229,21 +229,20 @@ impl Prim
                             {
                                 panic!("Found a non-empty list that is actually empty")
                             }
-                            else if v.len() == 1
-                            {
-                                let cond = params[0].eval(context)?;
-                                if Value::Sexpr(Sexpr::Atom(Type::Sym(Sym::t()))) == cond
-                                {
-                                    return Ok(cond);
-                                }
-                            }
                             else
                             {
-                                let cond = params[0].eval(context)?;
-                                if Value::Sexpr(Sexpr::Atom(Type::Sym(Sym::t()))) == cond
+                                let cond = v[0].eval(context)?;
+                                if Value::Sexpr(Sexpr::Atom(Type::Nil)) != cond
                                 {
-                                    return v[v.len()-1].eval(context);
-                                }                                
+                                    if v.len() == 1
+                                    {
+                                        return Ok(cond);
+                                    }
+                                    else
+                                    {
+                                        return v[v.len()-1].eval(context);
+                                    }
+                                }
                             }
                         }
                     }
@@ -303,29 +302,29 @@ impl Prim
                     }
                 }
             },
-            Add => // for now only with u64
+            Add => // for now only with i64
             {
                 let sum = params.iter()
-                    .try_fold(0u64, |sum, p|
+                    .try_fold(0i64, |sum, p|
                               {
                                   let reduced = p.eval(context)?;
-                                  if let Value::Sexpr(Sexpr::Atom(Type::Num(Num::U64(n)))) = reduced
+                                  if let Value::Sexpr(Sexpr::Atom(Type::Num(Num::Z(n)))) = reduced
                                   {
                                       Ok(n + sum)
                                   }
                                   else
                                   {
-                                      Err(format!("TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION (found {:?}, expected a u64)", p))
+                                      Err(format!("TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION (found {:?}, expected a i64)", p))
                                   }
                               })?;
-                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::U64(sum)))))
+                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::Z(sum)))))
             },
-            Mult => // for now only with u64
+            Mult => // for now only with i64
             {
-                let mul = params.iter().try_fold(1u64, |mul, p|
+                let mul = params.iter().try_fold(1i64, |mul, p|
                                 {
                                     let reduced = p.eval(context)?;
-                                    if let Value::Sexpr(Sexpr::Atom(Type::Num(Num::U64(n)))) = reduced
+                                    if let Value::Sexpr(Sexpr::Atom(Type::Num(Num::Z(n)))) = reduced
                                     {
                                         Ok(n * mul)
                                     }
@@ -334,7 +333,7 @@ impl Prim
                                         Err(String::from("TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION"))
                                     }
                                 })?;
-                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::U64(mul)))))
+                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::Z(mul)))))
             },
             Let =>
             {
