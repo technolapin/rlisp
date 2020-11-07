@@ -157,3 +157,109 @@ impl<'input> Iterator for Lexer<'input> {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+pub struct EscapingLexer<'input>
+{
+    chars: Peekable<Chars<'input>>,
+    head_pos: usize,
+    input: &'input str,
+    escaping: bool
+}
+
+enum CharClass
+{
+    Other,
+    Blank,
+    Escape,
+    Ctrl
+}
+
+impl CharClass
+{
+    fn of(c: char) -> Self
+    {
+        match c
+        {
+            ' '|'\n' => CharClass::Blank,
+            '\\' => CharClass::Escape,
+            _ => if c.is_control() {CharClass::Ctrl} else {CharClass::Other}
+        }
+    }
+}
+
+impl<'input> EscapingLexer<'input>
+{
+    /// the given str should not contain any control char
+    pub fn new(input: &'input str) -> Self
+    {
+        Self
+        {
+            chars: input.chars().peekable(),
+            head_pos: 0,
+            input,
+            escaping: false
+            
+        }
+    }
+
+    pub fn pop(&mut self) -> Option<char>
+    {
+        let maybe_c = self.chars.next();
+
+        if let Some(c) = maybe_c
+        {
+            self.head_pos += c.len_utf8();
+        }
+
+        maybe_c
+
+    }
+}
+
+impl<'input> Iterator for EscapingLexer<'input>
+{
+    type Item = Spanned<char, usize, LexicalError>;
+
+    fn next(&mut self) -> Option<Self::Item>
+    {
+        let start = self.head_pos;
+        while let Some(c) = self.pop()
+        {
+            match (self.escaping, CharClass::of(c))
+            {
+                (_, CharClass::Ctrl) => continue,
+                (false, CharClass::Blank) => continue,
+                (false, CharClass::Escape) =>
+                {
+                    self.escaping = true;
+                    return Some(Ok((start, c, self.head_pos)));
+                },
+                (true, _) =>
+                {
+                    self.escaping = false;
+                    return Some(Ok((start, c, self.head_pos)));
+                },
+                (false, CharClass::Other) =>
+                {
+                    return Some(Ok((start, c, self.head_pos)));
+                },
+            }
+        }
+        return None;
+
+    }    
+}
+
+

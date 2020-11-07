@@ -1,0 +1,90 @@
+use std::str::FromStr;
+use crate::lexer::*;
+use crate::ast::*;
+use crate::types::*;
+
+
+grammar;
+
+
+match {
+    "()" => SNil,
+    "(" => LDel,
+    ")" => RDel,
+}
+else
+{
+    r"-?[0-9]+" => SZNum,
+    r"-?[0-9]+/[0-9]+" => SQNum,
+    r"-?[0-9]+\.[0-9]*" => SRNum,
+    r"-?[0-9]+\.[0-9]*\+|-[0-9]+\.[0-9]*i" => SCNum,
+}
+else
+{
+    r".*" => SSym
+}
+else
+{
+    r"\?\\." => SChar,
+}
+    
+
+Nil = LDel RDel;
+
+
+Num: Num =
+{
+    SZNum => Num::Z(i64::from_str(<>).unwrap()),
+    SQNum =>
+    {
+        let s = <>;
+        let i_slash = s.find('/').unwrap();
+        let a = i64::from_str(&s[..i_slash]).unwrap();
+        let b = i64::from_str(&s[(i_slash+1)..]).unwrap();
+        Num::make_rational(a, b)
+    },
+    SRNum => Num::R(f64::from_str(<>).unwrap()),
+    SCNum =>
+    {
+        let s = <>;
+        let i_sep = s.rfind(|c: char| c == '-' || c == '+')
+            .unwrap();
+        let a = f64::from_str(&s[..i_sep]).unwrap();
+        let b = f64::from_str(&s[(i_sep+1)..(s.len()-1)]).unwrap();
+        
+        Num::C(a, b)
+    },
+}
+
+Char: Char =
+{
+    SChar => Char(<>.chars().nth(2).unwrap())
+}
+Sym: Sym =
+{
+    SSym => Sym::new(<>),
+}
+
+
+Atom: Type =
+{
+    SNil => Type::Nil,
+    Num => Type::Num(<>),
+    Char => Type::Char(<>),
+    Sym => Type::Sym(<>)
+}
+
+pub Sex: Sexpr =
+{
+    LDel <lst: NonNilList> RDel => Sexpr::List(lst),
+    Atom => Sexpr::Atom(<>)
+}
+ 
+NonNilList: Vec<Sexpr> =
+{
+    Sex => vec![<>],
+    <lst: NonNilList> <e: Sex> => {let mut l = lst; l.push(e); l}
+}
+
+
+

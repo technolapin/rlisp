@@ -1,6 +1,6 @@
 use crate::types::*;
 use crate::ast::*;
-
+use rand;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Prim
 {
@@ -15,7 +15,10 @@ pub enum Prim
     Lambda,
     Add,  
     Mult,
-    Let
+    Let,
+
+    Rand,
+    Floor,
 }
 
 impl Prim
@@ -314,6 +317,7 @@ impl Prim
                                   }
                                   else
                                   {
+                                      
                                       Err(format!("TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION (found {:?}, expected a i64)", p))
                                   }
                               })?;
@@ -321,19 +325,20 @@ impl Prim
             },
             Mult => // for now only with i64
             {
-                let mul = params.iter().try_fold(1i64, |mul, p|
-                                {
-                                    let reduced = p.eval(context)?;
-                                    if let Value::Sexpr(Sexpr::Atom(Type::Num(Num::Z(n)))) = reduced
-                                    {
-                                        Ok(n * mul)
-                                    }
-                                    else
-                                    {
-                                        Err(String::from("TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION"))
-                                    }
-                                })?;
-                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::Z(mul)))))
+                let mul = params.iter()
+                    .try_fold(Num::Z(1), |mul, p|
+                              {
+                                  let reduced = p.eval(context)?;
+                                  if let Value::Sexpr(Sexpr::Atom(Type::Num(num))) = reduced
+                                  {
+                                      num.mult(&mul)
+                                  }
+                                  else
+                                  {
+                                      Err(format!("MULT TYPE ERROR BECAUSE OF SHITTY IMPLEMENTATION (found {:?}, expected a i64)", p))
+                                  }
+                              })?;
+                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(mul))))
             },
             Let =>
             {
@@ -394,6 +399,30 @@ impl Prim
                     
                 }
             },
+            Rand =>
+            {
+                Ok(Value::Sexpr(Sexpr::Atom(Type::Num(Num::R(rand::random::<f64>())))))
+            },
+            Floor =>
+            {
+                if params.len() == 1
+                {
+                    if let Value::Sexpr(Sexpr::Atom(Type::Num(num))) = params[0].eval(context)?
+                    {
+                        Ok(Value::Sexpr(Sexpr::Atom(Type::Num(num.cast_Z()))))
+                    }
+                    else
+                    {
+                        Err(format!("Error: floor takes only number parameters"))
+
+                    }
+                }
+                else
+                {
+                    Err(format!("Error: floor takes 1 argument ({} given)", params.len()))
+                }
+            },
+
         }
     }
 }

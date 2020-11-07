@@ -53,7 +53,7 @@ impl Context
         self.push(name, Value::Prim(prim))
     }
 
-    fn push_lambda(&mut self, name: Sym, lmbd: LambdaValue)
+    pub fn push_lambda(&mut self, name: Sym, lmbd: LambdaValue)
     {
         self.push(name, Value::Lambda(lmbd))
     }
@@ -86,6 +86,7 @@ impl Sexpr
 {
     pub fn eval(&self, context: &mut Context) -> Result<Value, String>
     {
+        println!("eval: {}", self);
         match self
         {
             Self::Atom(atom) => match atom
@@ -167,6 +168,8 @@ impl LambdaValue
 
     fn execute(&self, given_params: &[Sexpr], context: &mut Context) -> Result<Value, String>
     {
+        println!("Execute: {:?}", self);
+        println!("Execute BIS: {}", self.expr);
         if given_params.len() != self.params.len()
         {
             Err(format!("Error on lambda call: {} parameters required ({} given)",
@@ -177,7 +180,14 @@ impl LambdaValue
         {
             for (sym, expr) in self.params.iter().zip(given_params.iter())
             {
-                context.push_sexpr(sym.clone(), expr.clone())
+                if let Value::Sexpr(sex) = expr.eval(context)?
+                {
+                    context.push_sexpr(sym.clone(), sex);
+                }
+                else
+                {
+                    return Err(format!("LAMBDA EXECUTION ERROR: NON-SEXPR PARAM"));
+                }
             }
 
             let ret = self.expr.eval(context);
@@ -190,4 +200,19 @@ impl LambdaValue
             ret
         }
     }
+}
+
+
+impl Sexpr
+{
+    /*
+    fn desugar(&self) -> Self
+    {
+        match self
+        {
+            Self::List(lst) => Self::List(lst.iter().map(|sex| sex.desugar()).collect()),
+            Self::Sexpr(sex) =>
+        }
+            
+    }*/
 }

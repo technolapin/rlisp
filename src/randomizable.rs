@@ -50,7 +50,16 @@ impl Randomizable for Num
 {
     fn rand(_: usize) -> Self
     {
-        Self::Z(rand::random::<i64>())
+        match rand::random::<u32>() % 4
+        {
+            0 => Self::Z(rand::random::<i64>()),
+            1 =>
+            {
+                Self::make_rational(rand::random::<i64>(), rand::random::<i64>())
+            },
+            2 => Self::R(rand::random::<f64>()),
+            _ => Self::C(rand::random::<f64>(), rand::random::<f64>()),
+        }
     }
 }
 
@@ -74,7 +83,7 @@ impl Randomizable for Sexpr
         }
         else
         {
-            let len = rand::random::<usize>() % 3;
+            let len = rand::random::<usize>() % 3+1;
             Self::List((0..len)
                        .map(|_| Self::rand(depth-1))
                        .collect::<Vec<_>>())

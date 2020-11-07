@@ -3,6 +3,22 @@ use lisp::ast::*;
 use lisp::lexer::*;
 use lisp::prims::*;
 use lisp::parser;
+use lisp::lisp_parser;
+
+use lisp::Lisp;
+
+fn eval_str(input: &str, context: &mut Context) -> Result<Value, String>
+{
+    let lexer = Lexer::new(input);
+    match parser::SexParser::new()
+        .parse(input,lexer)
+    {
+        Err(err) => Err(format!("{:?}", err)),
+        Ok(expr) => expr.eval(context)
+    }
+}
+
+    
 fn main() -> Result<(), String>
 {
     {
@@ -49,12 +65,73 @@ fn main() -> Result<(), String>
     context.push_prim(Sym::new("cdr"), Prim::Cdr);
     context.push_prim(Sym::new("cons"), Prim::Cons);
     context.push_prim(Sym::new("cond"), Prim::Cond);
+    context.push_prim(Sym::new("rand"), Prim::Rand);
+    context.push_prim(Sym::new("floor"), Prim::Floor);
 
     context.push_prim(Sym::new("+"), Prim::Add);
     context.push_prim(Sym::new("*"), Prim::Mult);
     context.push_prim(Sym::new("lambda"), Prim::Lambda);
     context.push_prim(Sym::new("let"), Prim::Let);
     context.push_sexpr(Sym::new("nil"), Sexpr::Atom(Type::Nil));
+    context.push_lambda(Sym::new("randint"),
+                       LambdaValue
+                       {
+                           params: vec![Sym::new("n")],
+                           expr: Sexpr::List(vec![
+                               Sexpr::Atom(Type::Sym(Sym::new("floor"))),
+                               Sexpr::List(vec![
+                                   Sexpr::Atom(Type::Sym(Sym::new("*"))), 
+                                   Sexpr::List(vec![
+                                       Sexpr::Atom(Type::Sym(Sym::new("rand"))),
+                                       
+                                   ]),
+                                   Sexpr::Atom(Type::Sym(Sym::new("n"))),
+                                       
+                               ])
+                           ])
+                       }
+    );
+    context.push_lambda(Sym::new("dice"),
+                        LambdaValue
+                        {
+                            params: vec![Sym::new("n")],
+                            expr:
+                            Sexpr::List(vec![
+                                Sexpr::Atom(Type::Sym(Sym::new("+"))),
+                                Sexpr::List(vec![
+                                    Sexpr::Atom(Type::Sym(Sym::new("randint"))), 
+                                    Sexpr::Atom(Type::Sym(Sym::new("n"))), 
+                                ]),
+                                Sexpr::Atom(Type::Num(Num::Z(1))), 
+                            ])
+                                
+                        }
+    );
+    context.push_lambda(Sym::new("defun"),
+                        LambdaValue
+                        {
+                            params: vec![Sym::new("fun_name"), Sym::new("fun_params"), Sym::new("fun_expr"), Sym::new("fun_out")],
+                            expr:
+                            Sexpr::List(vec![
+                                Sexpr::Atom(Type::Sym(Sym::new("let"))),
+                                Sexpr::List(vec![
+                                    Sexpr::List(vec![
+                                        Sexpr::Atom(Type::Sym(Sym::new("fun_name"))),
+                                        Sexpr::List(vec![
+                                            Sexpr::Atom(Type::Sym(Sym::new("lambda"))),
+                                            Sexpr::Atom(Type::Sym(Sym::new("fun_params"))),
+                                            Sexpr::Atom(Type::Sym(Sym::new("fun_expr"))),
+                                        ]),                                        
+                                        
+                                    ]),
+                                ]),
+                                Sexpr::Atom(Type::Sym(Sym::new("fun_out"))),
+                            ])
+                                
+                        }
+    );
+
+
     {
         let sexpr = Sexpr::List(vec![
             Sexpr::Atom(Type::Sym(Sym::new("+"))),
@@ -237,6 +314,14 @@ fn main() -> Result<(), String>
             ("(cond ((eq (quote a) (quote b)) (quote first))
 ((atom (quote a)) (quote second)))", "second"),
 
+            ("(+ 1 2)", "3"),
+            ("(+ 1/2 2)", "5/2"),
+            //("(+ -1/2 2)", "1/2"),
+            //("(+ -1/2 -2)", "1/2"),
+            ("(+ -1. 2)", "1"),
+            ("(+ -1.2 2)", "0.8"),
+            ("(+ -6.2 2)", "-4.2"),
+            ("(+ -4.0+2.0i 2)", "-2+2i"),
             
         ];
         for (input, expect) in inputs.iter()
@@ -250,7 +335,78 @@ fn main() -> Result<(), String>
             println!("INPUT | {}", input);
             println!("PRETTY| {}", expr);
             println!("AST|{:?}", expr);
-            println!("RESULT  = {}", out);
+            println!("RESULT  = {}   ({:?})", out, out);
+            println!("EXPECTED= {}", expect);
+            if &format!("{}", out) != expect
+            {
+                return Err(format!("TEST FAILED"));
+            }
+        }
+    }
+    if false
+    {
+        println!("======NEW GRAMMAR==================================");
+        // input + expected result
+        let inputs = vec![
+            ("()", "()"),
+            ("(quote (+ 1 1))", "(+ 1 1)"),
+            ("(quote (quote 1))", "(quote 1)"),
+
+            ("(atom (quote a))", "t"),
+            ("(atom (quote (1 2 3)))", "()"),
+            ("(atom (quote ()))", "t"),
+
+            ("(eq 2 (+ 1 1))", "t"),
+            ("(eq () nil)", "t"),
+            ("(eq () ())", "t"),
+            ("(eq () 1)", "()"),
+
+            ("(car ())", "()"),
+            ("(car (quote ()))", "()"),
+            ("(car (quote (1 2)))", "1"),
+            ("(car (quote (() 2)))", "()"),
+
+            ("(cdr ())", "()"),
+            ("(cdr (quote ()))", "()"),
+            ("(cdr (quote (1)))", "()"),
+            ("(cdr (quote (1)))", "()"),
+            ("(cdr (quote (1 2)))", "(2)"),
+            ("(cdr (quote (() 2)))", "(2)"),
+            ("(cdr (quote (1 ())))", "(())"),
+
+            ("(cons () (quote ()))", "(())"),
+            ("(cons 1 (quote ()))", "(1)"),
+            ("(cons 1 (quote (2 3 4)))", "(1 2 3 4)"),
+
+            ("(cond ())", "()"),
+            ("(cond () () () ())", "()"),
+            ("(cond () () (6) ())", "6"),
+            ("(cond () () () (6))", "6"),
+            ("(cond (6) () () ())", "6"),
+            ("(cond (1 2))", "2"),
+            ("(cond ((eq (quote a) (quote b)) (quote first))
+((atom (quote a)) (quote second)))", "second"),
+
+            ("(+ 1 2)", "3"),
+            ("(+ 1/2 2)", "5/2"),
+            //("(+ -1/2 2)", "1/2"),
+            //("(+ -1/2 -2)", "1/2"),
+            ("(+ -1. 2)", "1"),
+            ("(+ -1.2 2)", "0.8"),
+            ("(+ -6.2 2)", "-4.2"),
+            
+        ];
+        for (input, expect) in inputs.iter()
+        {
+            let expr = lisp_parser::SexParser::new()
+                .parse(input)
+                .unwrap();
+            let out = expr.eval(&mut context).unwrap();
+            println!();
+            println!("INPUT | {}", input);
+            println!("PRETTY| {}", expr);
+            println!("AST|{:?}", expr);
+            println!("RESULT  = {}   ({:?})", out, out);
             println!("EXPECTED= {}", expect);
             if &format!("{}", out) != expect
             {
@@ -272,6 +428,78 @@ fn main() -> Result<(), String>
         println!("{}", sum);
 
     }
+    {
+        let code = r#"
+(
+lambda foo (a b)
+    (+ a b)
+)
 
+"#;
+
+        let clean_code = code.chars().filter(|c| !c.is_control()).collect::<String>();
+
+        let visited_token = EscapingLexer::new(&clean_code)
+            .filter_map(|el| if let Ok((_, c, _)) = el {Some(c)} else {None})
+            .collect::<String>();
+        
+        println!("{}", code);
+        println!("{}", clean_code);
+        println!("{}", visited_token);
+
+
+
+        
+    }
+    {
+        let mut lisp = Lisp::new();
+        let inputs = vec![
+            "(rand)",
+            "(* (rand) 10)",
+            "(floor (* (rand) 10))",
+            "(lambda (n) (floor (* (rand) n)))",
+            //            "(let ((randint (lambda (n) (floor (* (rand) n)))))(+ (randint 2) 1))",
+            "(randint 10)",
+            "(dice 2)",
+            "(dice (dice 10))",
+//            "(defun foo (n) (+ n 1) 4)"
+        ];
+        for input in inputs.iter()
+        {
+            let lexer = Lexer::new(input);
+            let expr = parser::SexParser::new()
+                .parse(input,lexer)
+                .unwrap();
+            println!();
+            println!("INPUT | {}", input);
+            println!("PRETTY| {}", expr);
+            println!("AST|{:?}", expr);
+            let out = expr.eval(&mut context).unwrap();
+            println!("RESULT  = {}   ({:?})", out, out);
+        }
+    }    
+    
+    {
+        let mut lisp = Lisp::new();
+        let inputs = vec![
+            "(rand)",
+            "(* (rand) 10)",
+            "(floor (* (rand) 10))",
+            "(lambda (n) (floor (* (rand) n)))",
+            //            "(let ((randint (lambda (n) (floor (* (rand) n)))))(+ (randint 2) 1))",
+            "(randint 10)",
+            "(dice 2)",
+            "(dice (dice 10))",
+//            "(defun foo (n) (+ n 1) 4)"
+        ];
+        for input in inputs.iter()
+        {
+            println!();
+            println!("INPUT | {}", input);
+            let out = lisp.evaluate(input)?;
+            println!("RESULT  = {}   ({:?})", out, out);
+        }
+    }    
+    
     Ok(())
 }

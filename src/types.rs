@@ -20,17 +20,53 @@ impl Type
         {print!("[{}] ", c);}
          */
         let set = RegexSet::new(&[
-            r"^[0-9]+$",
+            r"^-?[0-9]+$",
+
+            r"^-?[0-9]+/[0-9]+$",
+
+            r"^-?[0-9]+.[0-9]*$",
+
+            r"^-?[0-9]+.[0-9]*\+|-[0-9]+.[0-9]*i$",
+
             r"^\?\\.$",
         ]).unwrap();
+        
         let recognized = set.matches(s).into_iter().next();
         // println!("automata returned {:?}", recognized);
-        
+
+        println!("    S={}", s);
         match recognized
         {
             None => Type::Sym(Sym::new(s)),
             Some(0) => Type::Num(Num::Z(i64::from_str(s).unwrap())),
-            Some(1) => Type::Char(Char(s.chars().nth(2).unwrap())),
+            Some(1) =>
+            {
+                let i_slash = s.find('/').unwrap();
+                let a = i64::from_str(&s[..i_slash]).unwrap();
+                let b = i64::from_str(&s[(i_slash+1)..]).unwrap();
+                Type::Num(Num::make_rational(a, b))
+            },
+            Some(2) =>
+            {
+                if let Ok(n) = f64::from_str(s)
+                {
+                    Type::Num(Num::R(n))
+                }
+                else
+                {
+                    panic!(format!("F64 PARSING ERROR: {}", s));
+                }
+            },
+            Some(3) =>
+            {
+                let i_sep = s.rfind(|c: char| c == '-' || c == '+')
+                    .unwrap();
+                let a = f64::from_str(&s[..i_sep]).unwrap();
+                let b = f64::from_str(&s[(i_sep+1)..(s.len()-1)]).unwrap();
+                
+                Type::Num(Num::C(a, b))
+            },
+            Some(4) => Type::Char(Char(s.chars().nth(2).unwrap())),
             Some(_) => unreachable!()
                 
         }
@@ -216,7 +252,6 @@ impl Num
     /// a and be must be non-negative
     fn gcd(a: i64, b: i64) -> i64
     {
-        println!("    GCD {} {}", a, b);
         if a == 0
         {
             b
@@ -234,7 +269,7 @@ impl Num
         }
     }
 
-    fn make_rational(u: i64, v: i64) -> Self
+    pub fn make_rational(u: i64, v: i64) -> Self
     {
         use Num::*;
         match (u, v)
@@ -263,6 +298,24 @@ impl Num
         a.checked_mul(b).ok_or(format!("Mul overflow"))
     }
     
+    pub fn mult(&self, other: &Self) -> Result<Self, String>
+    {
+        use Num::*;
+        match self.double_cast(other)
+        {
+            (Z(a), Z(b)) => Ok(Z(Self::iscalar_mul(a, b)?)),
+            (Q(a, b), Q(c, d)) =>
+            {
+                let ac = Self::iscalar_mul(a, c)?; 
+                let bd = Self::iscalar_mul(b, d)?; 
+                Ok(Self::make_rational(ac, bd))
+            },
+            (R(a), R(b)) => Ok(R(a*b)),
+            (C(a, b), C(c, d)) => Ok(C(a*c-b*d, b*c+a*d)),
+            _ => unreachable!()
+        }
+    }
+
     pub fn add(&self, other: &Self) -> Result<Self, String>
     {
         use Num::*;
@@ -285,6 +338,51 @@ impl Num
         }
     }
 
+    pub fn cast_Z(&self) -> Self
+    {
+        use Num::*;
+        match self
+        {
+            Z(n) => *self,
+            Q(a, b) => Z(a/b),
+            R(n) => Z(n.floor() as i64),
+            C(a, b) => Z(a.floor() as i64),
+        }
+    }
+
+    pub fn cast_Q(&self) -> Self
+    {
+        use Num::*;
+        match self
+        {
+            R(n) =>
+            {
+                let exponent = n.log10();
+                let mult = (10.0f64).powf(exponent)*1000.;
+                let u = (n* mult) as i64;
+                let v = mult as i64;
+                Self::make_rational(u, v)
+                    
+            },
+            C(a, b) => R(*a).cast_Q(), // flemme
+            _ => self.to_Q(),
+        }
+    }
+
+    pub fn cast_R(&self) -> Self
+    {
+        use Num::*;
+        match self
+        {
+            C(a, b) => R(*a),
+            _ => self.to_R(),
+        }
+    }
+    
+    pub fn cast_C(&self) -> Self
+    {
+        self.to_C()
+    }
 
     
 }
@@ -298,7 +396,7 @@ impl fmt::Display for Num
             Self::Z(x) => write!(f, "{}", x),
             Self::Q(a, b) => write!(f, "{}/{}", a, b),
             Self::R(x) => write!(f, "{}", x),
-            Self::C(a, b) => write!(f, "{}+i{}", a, b),
+            Self::C(a, b) => write!(f, "{}+{}i", a, b),
         }
     }
 }

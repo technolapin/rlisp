@@ -4,11 +4,11 @@ version = "0.1.0"
 authors = ["technolapin <clement.chomicki@protonmail.com>"]
 edition = "2018"
 
-[build-dependencies]
-lalrpop = "0.17.2"
-
+[build-dependencies.lalrpop]
+version = "0.19.1"
+features = ["lexer"]
 
 [dependencies]
-lalrpop-util = "0.18.1"
+lalrpop-util = "0.19.1"
 regex = "1"
 rand = "*"
