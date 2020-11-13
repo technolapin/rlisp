@@ -1,6 +1,5 @@
 // auto-generated: "lalrpop 0.17.2"
-// sha256: cda0908490fa7dde8d1b9afcad3cbdbbad15427623b3e94b9fbbc8851a67d
-use std::str::FromStr;
+// sha256: e92b56435622c951f45fed92a976ab3ed31188808d8cd768d4ca4983d2ec946
 use crate::lexer::*;
 use crate::ast::*;
 use crate::types::*;
@@ -13,7 +12,6 @@ use self::__lalrpop_util::state_machine as __state_machine;
 mod __parse__Sex {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens)]
 
-    use std::str::FromStr;
     use crate::lexer::*;
     use crate::ast::*;
     use crate::types::*;

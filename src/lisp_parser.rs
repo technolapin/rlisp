@@ -1,7 +1,6 @@
 // auto-generated: "lalrpop 0.17.2"
-// sha256: c2798380f620a6821ada75deb254be9f9d88f9eb531d29d16c403754eaf79e
+// sha256: 62c914daf5a12ad1a2ec77e6f8e9a23242c32711c9aacc11c64af7ca76ca3e
 use std::str::FromStr;
-use crate::lexer::*;
 use crate::ast::*;
 use crate::types::*;
 #[allow(unused_extern_crates)]
@@ -14,7 +13,6 @@ mod __parse__Sex {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens)]
 
     use std::str::FromStr;
-    use crate::lexer::*;
     use crate::ast::*;
     use crate::types::*;
     #[allow(unused_extern_crates)]
@@ -925,7 +923,6 @@ pub use self::__parse__Sex::SexParser;
 mod __intern_token {
     #![allow(unused_imports)]
     use std::str::FromStr;
-    use crate::lexer::*;
     use crate::ast::*;
     use crate::types::*;
     #[allow(unused_extern_crates)]

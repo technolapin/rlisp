@@ -1,3 +1,7 @@
+#![allow(non_snake_case)]
+
+
+
 use regex::RegexSet;
 use std::str::FromStr;
 
@@ -343,10 +347,10 @@ impl Num
         use Num::*;
         match self
         {
-            Z(n) => *self,
+            Z(_) => *self,
             Q(a, b) => Z(a/b),
             R(n) => Z(n.floor() as i64),
-            C(a, b) => Z(a.floor() as i64),
+            C(a, _) => Z(a.floor() as i64),
         }
     }
 
@@ -364,7 +368,7 @@ impl Num
                 Self::make_rational(u, v)
                     
             },
-            C(a, b) => R(*a).cast_Q(), // flemme
+            C(a, _) => R(*a).cast_Q(), // flemme
             _ => self.to_Q(),
         }
     }
@@ -374,7 +378,7 @@ impl Num
         use Num::*;
         match self
         {
-            C(a, b) => R(*a),
+            C(a, _) => R(*a),
             _ => self.to_R(),
         }
     }
