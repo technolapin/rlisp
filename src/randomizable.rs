@@ -5,7 +5,7 @@ pub trait Randomizable
 
 use crate::types::*;
 use crate::ast::*;
-    
+
 impl Randomizable for Type
 {
     fn rand(_: usize) -> Self
@@ -20,17 +20,25 @@ impl Randomizable for Type
     }
 }
 
-//use rand::Rng;
+use rand::Rng;
+use rand::distr::StandardUniform;
+use rand::prelude::Distribution;
+// fn random<T>() -> T where StandardUniform: Distribution<T>
+
+// {
+//     let rng = rand::rng();
+//     rng.random()
+// }
 
 impl Randomizable for Sym
 {
     fn rand(_: usize) -> Self
     {
-        let len = rand::random::<usize>() % 20+1;
+        let len = rand::random::<u32>() as usize % 20+1;
         let mut s = String::new();
         while s.len() < len
         {
-            if let Some(c) = std::char::from_u32(rand::random::<u32>())
+            if let Some(c) = std::char::from_u32(rand::random())
             {
                 match c
                 {
@@ -83,7 +91,7 @@ impl Randomizable for Sexpr
         }
         else
         {
-            let len = rand::random::<usize>() % 3+1;
+            let len = rand::random::<u32>() as usize % 3+1;
             Self::List((0..len)
                        .map(|_| Self::rand(depth-1))
                        .collect::<Vec<_>>())

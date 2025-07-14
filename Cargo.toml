@@ -11,4 +11,4 @@ features = ["lexer"]
 [dependencies]
 lalrpop-util = "0.19.1"
 regex = "1"
-rand = "*"
+rand = {version = "0.9.1", feature = ["thread_rng"]}
